@@ -89,3 +89,5 @@ blob-report/
 *.tmp
 *.temp
 .turbo/
+# Personal notes (not part of the project)
+linkedin-post.md
