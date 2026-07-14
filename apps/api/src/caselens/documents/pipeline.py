@@ -90,12 +90,60 @@ _FALLBACK_METADATA = {
 }
 
 
+def _extract_pdf_pages(data: bytes) -> list[str]:
+    """One string per PDF page (PyMuPDF)."""
+    pages: list[str] = []
+    with fitz.open(stream=data, filetype="pdf") as pdf:
+        for page in pdf:
+            pages.append(page.get_text())
+    return pages
+
+
+def _extract_docx_pages(data: bytes) -> list[str]:
+    """Word .docx text (paragraphs + table cells). Word has no fixed pages,
+    so the whole document is returned as a single page. Lightweight: just
+    unzips and reads XML — no rendering/OCR."""
+    import io
+
+    from docx import Document as DocxDocument
+
+    doc = DocxDocument(io.BytesIO(data))
+    parts = [p.text for p in doc.paragraphs if p.text.strip()]
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                if cell.text.strip():
+                    parts.append(cell.text)
+    return ["\n".join(parts)]
+
+
+def _extract_text_pages(data: bytes) -> list[str]:
+    """Plain-text file as a single page."""
+    return [data.decode("utf-8", errors="replace")]
+
+
 async def _extract_text(document_id: uuid.UUID, storage_key: str) -> None:
-    """Download the PDF and extract text per page into DocumentPage rows."""
+    """Download the file and extract text per page into DocumentPage rows.
+
+    Supports PDF (PyMuPDF), Word .docx (python-docx), and plain text — chosen by
+    file signature with a filename-extension fallback.
+    """
     storage = get_storage_backend()
     data = await storage.download(storage_key)
-    if not data.startswith(b"%PDF-"):
-        raise ValueError("File is not a valid PDF")
+    key = storage_key.lower()
+
+    if data.startswith(b"%PDF-") or key.endswith(".pdf"):
+        page_texts = _extract_pdf_pages(data)
+        method = "pymupdf"
+    elif key.endswith(".docx") or data.startswith(b"PK\x03\x04"):
+        # PK.. is the ZIP signature shared by all .docx files
+        page_texts = _extract_docx_pages(data)
+        method = "python-docx"
+    elif key.endswith(".txt"):
+        page_texts = _extract_text_pages(data)
+        method = "plaintext"
+    else:
+        raise ValueError(f"Unsupported file type for extraction: {storage_key}")
 
     async with async_session_factory() as session:
         existing = await session.execute(
@@ -104,26 +152,22 @@ async def _extract_text(document_id: uuid.UUID, storage_key: str) -> None:
         if existing.scalar_one_or_none() is not None:
             return  # already extracted — idempotent
 
-        pages_extracted = 0
-        with fitz.open(stream=data, filetype="pdf") as pdf:
-            for i, page in enumerate(pdf):
-                text_content = page.get_text()
-                session.add(
-                    DocumentPage(
-                        document_id=document_id,
-                        page_number=i + 1,
-                        text_content=text_content,
-                        char_count=len(text_content),
-                        extraction_method="pymupdf",
-                        extraction_quality=1.0 if text_content else 0.0,
-                    )
+        for i, text_content in enumerate(page_texts):
+            session.add(
+                DocumentPage(
+                    document_id=document_id,
+                    page_number=i + 1,
+                    text_content=text_content,
+                    char_count=len(text_content),
+                    extraction_method=method,
+                    extraction_quality=1.0 if text_content.strip() else 0.0,
                 )
-                pages_extracted += 1
+            )
 
         await session.execute(
             update(Document)
             .where(Document.id == document_id)
-            .values(page_count=pages_extracted, status=DocumentStatus.PROCESSING)
+            .values(page_count=len(page_texts), status=DocumentStatus.PROCESSING)
         )
         await session.commit()
 
@@ -273,7 +317,8 @@ async def _analyze(document_id: uuid.UUID) -> None:
         matter_result = await session.execute(select(Matter).where(Matter.id == doc.matter_id))
         matter = matter_result.scalar_one_or_none()
         if matter:
-            matter.metadata_ = metadata_dict
+            # Merge so user-set fields (e.g. practice_area) survive AI analysis
+            matter.metadata_ = {**(matter.metadata_ or {}), **metadata_dict}
 
         await session.commit()
 

@@ -266,7 +266,7 @@ export default function MatterDashboard({ params }: { params: Promise<{ id: stri
               type="file"
               ref={fileInputRef}
               onChange={handleFileInput}
-              accept="application/pdf,.doc,.docx,.txt"
+              accept=".pdf,.docx,.txt"
               className="hidden"
             />
 

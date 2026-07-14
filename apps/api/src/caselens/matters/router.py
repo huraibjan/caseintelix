@@ -58,6 +58,7 @@ async def create_matter(
         title=request.title,
         description=request.description,
         matter_number=request.matter_number,
+        metadata_={"practice_area": request.practice_area} if request.practice_area else {},
     )
     db.add(matter)
     await db.flush()

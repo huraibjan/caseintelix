@@ -107,7 +107,11 @@ class Settings(BaseSettings):
 
     # Document Processing
     MAX_UPLOAD_SIZE_MB: int = 100
-    ALLOWED_MIME_TYPES: str = "application/pdf"
+    ALLOWED_MIME_TYPES: str = (
+        "application/pdf,"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
+        "text/plain"
+    )
     CHUNK_SIZE_TOKENS: int = 512
     CHUNK_OVERLAP_TOKENS: int = 64
 

@@ -11,6 +11,7 @@ class CreateMatterRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=500)
     description: str | None = None
     matter_number: str | None = Field(None, max_length=100)
+    practice_area: str | None = Field(None, max_length=50)
 
 
 class UpdateMatterRequest(BaseModel):

@@ -20,6 +20,7 @@ dependencies = [
     "boto3>=1.36.0",
     "pgvector>=0.3.6",
     "pymupdf>=1.25.0",
+    "python-docx>=1.1.0",
     "tiktoken>=0.8.0",
     "structlog>=24.4.0",
     "tenacity>=9.0.0",

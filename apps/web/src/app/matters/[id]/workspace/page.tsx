@@ -375,7 +375,7 @@ export default function Workspace({ params }: { params: Promise<{ id: string }> 
                   Upload Doc
                 </span>
               )}
-              <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleUpload} />
+              <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={handleUpload} />
             </label>
           </div>
         </div>
@@ -463,7 +463,7 @@ export default function Workspace({ params }: { params: Promise<{ id: string }> 
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                           </svg>
                           Upload Another
-                          <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleUpload} />
+                          <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={handleUpload} />
                         </label>
                       </div>
                     </div>
@@ -481,7 +481,7 @@ export default function Workspace({ params }: { params: Promise<{ id: string }> 
                           <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6h.1a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                         Upload First Document
-                        <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleUpload} />
+                        <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={handleUpload} />
                       </label>
                     </div>
                   )}

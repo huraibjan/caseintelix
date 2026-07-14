@@ -57,11 +57,17 @@ async def upload_document(
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No filename provided")
 
+    # Accept by MIME type OR file extension — browsers report Office/plain-text
+    # MIME types inconsistently (sometimes application/octet-stream), so we also
+    # trust the extension for the supported set.
+    allowed_extensions = (".pdf", ".docx", ".txt")
     content_type = file.content_type or "application/octet-stream"
-    if content_type not in settings.allowed_mime_types_list:
+    ext_ok = file.filename.lower().endswith(allowed_extensions)
+    mime_ok = content_type in settings.allowed_mime_types_list
+    if not (mime_ok or ext_ok):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File type '{content_type}' is not allowed. Allowed: {settings.ALLOWED_MIME_TYPES}",
+            detail="Unsupported file type. Please upload a PDF, Word (.docx), or text (.txt) file.",
         )
 
     # Read file content
@@ -74,8 +80,9 @@ async def upload_document(
             detail=f"File size exceeds maximum of {settings.MAX_UPLOAD_SIZE_MB}MB",
         )
 
-    # Validate PDF magic bytes
-    if content_type == "application/pdf" and not file_content[:5] == b"%PDF-":
+    # Validate PDF magic bytes (only for files claiming to be PDF)
+    is_pdf = content_type == "application/pdf" or file.filename.lower().endswith(".pdf")
+    if is_pdf and not file_content[:5] == b"%PDF-":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File does not appear to be a valid PDF",

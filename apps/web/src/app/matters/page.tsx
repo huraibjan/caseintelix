@@ -73,7 +73,7 @@ export default function Matters() {
     try {
       await fetchApi('/api/v1/matters', {
         method: 'POST',
-        body: JSON.stringify({ title, description, matter_number: matterNumber }),
+        body: JSON.stringify({ title, description, matter_number: matterNumber, practice_area: practiceArea }),
       });
       setTitle(''); setDescription(''); setMatterNumber('');
       setShowCreate(false);
